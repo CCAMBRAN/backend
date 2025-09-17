@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: flask-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: SECRET_KEY  
+        generateValue: true
+      - key: DB_HOST
+        fromService:
+          name: mysql-railway
+          type: mysql
+          property: host
+      - key: DB_USER
+        fromService:
+          name: mysql-railway
+          type: mysql
+          property: user
+      - key: DB_PASSWORD
+        fromService:
+          name: mysql-railway
+          type: mysql
+          property: password
+      - key: DB_PORT
+        fromService:
+          name: mysql-railway
+          type: mysql
+          property: port
+      - key: DB_NAME
+        fromService:
+          name: mysql-railway
+          type: mysql
+          property: database
