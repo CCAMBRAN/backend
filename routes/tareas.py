@@ -1,56 +1,137 @@
-
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db_connection
 
+# create blueprint
 tareas_bp = Blueprint('tareas', __name__)
 
+
 @tareas_bp.route('/obtener', methods=['GET'])
-def get():
-    current_user = get_jwt_identity()
-    cursor= get_db_connection()
-    query = '''SELECT a.id_tarea, a.descripcion, b.name 
-                FROM tareas as a 
-                INNER JOIN usuarios as b ON a.id_usuario = b.id_usuario
-                WHERE a.id_usuario = %s'''
-    cursor.execute(query, (current_user,))
-    tareas = cursor.fetchall()
-    cursor.close()
-    if not tareas:
-        return jsonify({'message': 'No hay tareas'}), 404
-    tareas = [{'id_tarea': tarea[0], 'descripcion': tarea[1], 'usuario': tarea[2]} for tarea in tareas]
+def obtener_tareas():
+    """Return tareas optionally filtered by usuario_id."""
+    usuario_id = request.args.get('usuario_id', type=int)
+    cursor = get_db_connection()
 
-    if not tareas:
-        return jsonify({'message': 'No hay tareas'}), 404
-    
-    return jsonify({'message': 'Estas son las tareas'}), 200
+    if not cursor:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
 
-#crear endpoint con post recibiendo datos desde body
+    try:
+        if usuario_id is not None:
+            cursor.execute(
+                '''SELECT t.id, t.descripcion, t.creada_en, t.usuario_id, u.nombre
+                   FROM tareas t
+                   JOIN usuarios u ON t.usuario_id = u.id
+                   WHERE t.usuario_id = %s
+                   ORDER BY t.creada_en DESC''',
+                (usuario_id,)
+            )
+        else:
+            cursor.execute(
+                '''SELECT t.id, t.descripcion, t.creada_en, t.usuario_id, u.nombre
+                   FROM tareas t
+                   JOIN usuarios u ON t.usuario_id = u.id
+                   ORDER BY t.creada_en DESC'''
+            )
+
+        tareas = cursor.fetchall()
+
+        tareas_list = [
+            {
+                "id": tarea[0],
+                "descripcion": tarea[1],
+                "creada_en": tarea[2].isoformat() if tarea[2] else None,
+                "usuario_id": tarea[3],
+                "usuario_nombre": tarea[4]
+            }
+            for tarea in tareas
+        ]
+
+        return jsonify({"tareas": tareas_list}), 200
+    except Exception as e:
+        return jsonify({"error": f"No se pudieron obtener las tareas: {str(e)}"}), 500
+    finally:
+        cursor.close()
+
 
 @tareas_bp.route('/crear', methods=['POST'])
 def crear():
-    data = request.get_json()
-    descripcion = data.get('descripcion')
+    """Create a new tarea associated to an existing usuario."""
+    data = request.get_json() or {}
+
+    descripcion = data.get('descripcion', '').strip()
+    usuario_id = data.get('usuario_id')
 
     if not descripcion:
-        return jsonify({'error': 'La descripcion es requerida'}), 400
-    
+        return jsonify({"error": "Debes proporcionar una descripción para la tarea"}), 400
+
+    if not usuario_id:
+        return jsonify({"error": "Debes proporcionar el usuario_id de la tarea"}), 400
+
     cursor = get_db_connection()
 
+    if not cursor:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+
     try:
-        cursor.execute('INSERT INTO tareas (descripcion) VALUES (%s)', (descripcion,))
-        cursor.connection.commit()  
-        return jsonify({'message': 'Tarea creada exitosamente'}), 201
+        cursor.execute('SELECT id FROM usuarios WHERE id = %s', (usuario_id,))
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            return jsonify({"error": "El usuario especificado no existe"}), 404
+
+        cursor.execute(
+            'INSERT INTO tareas (descripcion, usuario_id) VALUES (%s, %s)',
+            (descripcion, usuario_id)
+        )
+        cursor.connection.commit()
+
+        return jsonify({
+            "message": "Tarea creada exitosamente",
+            "tarea": {
+                "id": cursor.lastrowid,
+                "descripcion": descripcion,
+                "usuario_id": usuario_id
+            }
+        }), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500    
+        cursor.connection.rollback()
+        return jsonify({"error": f"No se pudo crear la tarea: {str(e)}"}), 500
     finally:
         cursor.close()
-#crear endpoint con put recibiendo datos desde body y url
 
-@tareas_bp.route('/actualizar/<int:user_id>', methods=['PUT'])
-def actualizar(user_id):
-    data = request.get_json()
-    nombre = data.get('nombre')
-    apellido = data.get('apellido')
-    
-    return jsonify({'message': f'Tarea actualizada de {nombre} {apellido}', 'data': data}), 200
+
+@tareas_bp.route('/modificar/<int:tarea_id>', methods=['PUT'])
+def modificar(tarea_id):
+    """Update an existing tarea's descripcion."""
+    data = request.get_json() or {}
+    descripcion = data.get('descripcion', '').strip()
+
+    if not descripcion:
+        return jsonify({"error": "Debes proporcionar una descripción para actualizar la tarea"}), 400
+
+    cursor = get_db_connection()
+
+    if not cursor:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+
+    try:
+        cursor.execute('SELECT id FROM tareas WHERE id = %s', (tarea_id,))
+        tarea = cursor.fetchone()
+
+        if not tarea:
+            return jsonify({"error": "La tarea especificada no existe"}), 404
+
+        cursor.execute('UPDATE tareas SET descripcion = %s WHERE id = %s', (descripcion, tarea_id))
+        cursor.connection.commit()
+
+        return jsonify({
+            "message": "Tarea actualizada exitosamente",
+            "tarea": {
+                "id": tarea_id,
+                "descripcion": descripcion
+            }
+        }), 200
+    except Exception as e:
+        cursor.connection.rollback()
+        return jsonify({"error": f"No se pudo actualizar la tarea: {str(e)}"}), 500
+    finally:
+        cursor.close()
