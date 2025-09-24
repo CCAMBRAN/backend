@@ -2,24 +2,29 @@ from flask_mysqldb import MySQL
 import os
 from dotenv import load_dotenv
 
+# Cargar de .env las variables de entorno
 load_dotenv()
 
-mysql = MySQL() # Initialize MySQL instance
+# Creo una instancia de MySQL
+mysql = MySQL()
 
-def init_db (app):
-    # Configure MySQL connection using environment variables
-    app.config['MYSQL_HOST'] = os.getenv('DB_HOST')
-    app.config['MYSQL_USER'] = os.getenv('DB_USER')
-    app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
-    app.config['MYSQL_DB'] = os.getenv('DB_NAME')  # Replace with your database name
-    app.config['MYSQL_PORT'] = int(os.getenv('DB_PORT', 3306))  # Default to 3306 if not set
+# Funcion para conecarme a la BD
+def init_db(app):
+    '''Configuramos la base de datos con la instancia de Flask'''
+    app.config['MYSQL_HOST']= os.getenv("DB_HOST")
+    app.config['MYSQL_USER']= os.getenv("DB_USER")
+    app.config['MYSQL_PASSWORD']= os.getenv("DB_PASSWORD")
+    app.config['MYSQL_DB']= os.getenv("DB_NAME")
+    app.config['MYSQL_PORT']= int(os.getenv("DB_PORT"))
 
-    mysql.init_app(app)  # Initialize MySQL with the Flask app
+    # Inicializamos la conexion
+    mysql.init_app(app)
 
+# Definimos el cursor
 def get_db_connection():
+    '''Devuele un cursor para interactuar con la bd'''
     try:
         connection = mysql.connection
         return connection.cursor()
     except Exception as e:
-        raise Exception(f"Error connecting to the database: {e}")
-        
+        raise RuntimeError(f"Error al conectar a la base de datos: {e}")
