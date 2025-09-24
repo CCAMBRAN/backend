@@ -109,4 +109,3 @@ def modificar(id_tarea):
     finally:
         cursor.close()
         
-
