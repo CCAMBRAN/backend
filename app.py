@@ -1,42 +1,42 @@
 from flask import Flask
 import os
 from dotenv import load_dotenv
+from routes.tareas import tareas_bp
 from config.db import init_db, mysql
 from flask_jwt_extended import JWTManager
+from flask_bcrypt import Bcrypt
 
-# Importamos las rutas de los blueprint
-from routes.tareas import tareas_bp
+#Import the user route
 from routes.usuarios import usuarios_bp
 
-# Cargar las variables de entorno
+#Load all the .env credentials
 load_dotenv()
 
-
-def create_app():  # <-Funcion para crear la app
-
-    # Instancia de la app
-    app = Flask(__name__)
-
-    # Configurar la base de datos
-    init_db(app)
-
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET')
+def create_app(): # Function to create the app
+    # App instance
+    app=Flask(__name__)
+    
+    # JWT Configuration
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-this-in-production')
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # Set to True in production with proper expiration time
+    
+    # Initialize extensions
     jwt = JWTManager(app)
-
-    #Registrar el blueprint
-    app.register_blueprint(tareas_bp, url_prefix='/tareas')
-    app.register_blueprint(usuarios_bp, url_prefix='/usuarios')
-
+    bcrypt = Bcrypt(app)
+    
+    init_db(app)
+    
+    #Register blueprint
+    app.register_blueprint(tareas_bp, url_prefix="/tareas")
+    app.register_blueprint(usuarios_bp, url_prefix="/usuarios")
+    
     return app
-
-
-# Crear la app
+    
 app = create_app()
 
 if __name__ == "__main__":
+    # Get the Port
+    port = int(os.getenv("PORT",3308))
 
-    #Obtenemos el puerto
-    port = int(os.getenv("PORT",3307))
-
-    #Corremos la app
+    # Run the application 
     app.run(host="0.0.0.0", port=port, debug=True)
