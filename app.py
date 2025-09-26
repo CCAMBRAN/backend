@@ -36,7 +36,7 @@ app = create_app()
 
 if __name__ == "__main__":
     # Get the Port
-    port = int(os.getenv("PORT",3308))
+    port = int(os.getenv("PORT",8000))
 
     # Run the application 
     app.run(host="0.0.0.0", port=port, debug=True)
