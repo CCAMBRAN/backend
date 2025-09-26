@@ -95,7 +95,7 @@ def registrar():
             return jsonify({"error": "Error de conexión a la base de datos"}), 500
         
         # Verify the user does not exist
-        cursor.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
+        cursor.execute("SELECT id_usuario FROM usuarios WHERE email = %s", (email,))
         existing_user = cursor.fetchone()
         
         if existing_user:
