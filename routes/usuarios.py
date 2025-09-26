@@ -154,7 +154,7 @@ def login():
             return jsonify({"error": "Error de conexión a la base de datos"}), 500
         
         # Find user by email
-        cursor.execute("SELECT id, nombre, email, password FROM usuarios WHERE email = %s", (email,))
+        cursor.execute("SELECT id_usuario, nombre, email, password FROM usuarios WHERE email = %s", (email,))
         user = cursor.fetchone()
         
         if not user:
