@@ -191,45 +191,37 @@ def login():
 
 @usuarios_bp.route('/obtener', methods=['GET'])
 @jwt_required()
-def obtener_usuario():
+def obtener_usuarios():
     try:
-        # Get the JWT identity
-        jwt_data = get_jwt()
-        user_identity = jwt_data.get('sub')
-        
-        if not user_identity:
-            return jsonify({"error": "No se pudo obtener la identidad del usuario"}), 401
-        
-        user_id = user_identity.get('id')
-        
-        if not user_id:
-            return jsonify({"error": "ID de usuario no encontrado en el token"}), 401
-        
-        # Get database connection
+        # Obtener conexión a la base de datos
         cursor = get_db_connection()
         
         if not cursor:
             return jsonify({"error": "Error de conexión a la base de datos"}), 500
         
-        # Fetch user details
-        cursor.execute("SELECT id_usuario, nombre, email FROM usuarios WHERE id_usuario = %s", (user_id,))
-        user = cursor.fetchone()
+        # Obtener todos los usuarios (excluyendo passwords por seguridad)
+        cursor.execute("SELECT id_usuario, nombre, email, fecha_creacion FROM usuarios")
+        usuarios = cursor.fetchall()
         
-        if not user:
-            return jsonify({"error": "Usuario no encontrado"}), 404
+        # Formatear los resultados
+        usuarios_list = []
+        for usuario in usuarios:
+            usuarios_list.append({
+                "id": usuario[0],
+                "nombre": usuario[1],
+                "email": usuario[2],
+                "fecha_creacion": usuario[3].isoformat() if usuario[3] else None
+            })
         
         return jsonify({
-            "user": {
-                "id": user[0],
-                "nombre": user[1],
-                "email": user[2]
-            }
+            "message": "Usuarios obtenidos exitosamente",
+            "usuarios": usuarios_list,
+            "total": len(usuarios_list)
         }), 200
         
     except Exception as e:
-        return jsonify({"error": f"Error al obtener los datos del usuario: {str(e)}"}), 500
+        return jsonify({"error": f"Error al obtener los usuarios: {str(e)}"}), 500
     
     finally:
         if 'cursor' in locals() and cursor:
             cursor.close()
-    
