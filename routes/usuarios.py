@@ -188,4 +188,48 @@ def login():
     finally:
         if 'cursor' in locals() and cursor:
             cursor.close()
+
+@usuarios_bp.route('/obtener', methods=['GET'])
+@jwt_required()
+def obtener_usuario():
+    try:
+        # Get the JWT identity
+        jwt_data = get_jwt()
+        user_identity = jwt_data.get('sub')
+        
+        if not user_identity:
+            return jsonify({"error": "No se pudo obtener la identidad del usuario"}), 401
+        
+        user_id = user_identity.get('id')
+        
+        if not user_id:
+            return jsonify({"error": "ID de usuario no encontrado en el token"}), 401
+        
+        # Get database connection
+        cursor = get_db_connection()
+        
+        if not cursor:
+            return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+        # Fetch user details
+        cursor.execute("SELECT id_usuario, nombre, email FROM usuarios WHERE id_usuario = %s", (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+        
+        return jsonify({
+            "user": {
+                "id": user[0],
+                "nombre": user[1],
+                "email": user[2]
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener los datos del usuario: {str(e)}"}), 500
+    
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
     
