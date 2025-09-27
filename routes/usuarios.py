@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_bcrypt import Bcrypt
 from config.db import get_db_connection
 import os
@@ -164,13 +164,8 @@ def login():
         if not bcrypt.check_password_hash(user[3], password):  # user[3] is the password field
             return jsonify({"error": "Credenciales inválidas"}), 401
         
-        # Create access token
-        access_token = create_access_token(
-            identity={
-                "id": user[0],
-                "email": user[2]
-            }
-        )
+        # CORRECCIÓN: Pasar el identity como string (normalmente el user_id)
+        access_token = create_access_token(identity=str(user[0]))
         
         return jsonify({
             "message": "Login exitoso",
@@ -193,6 +188,9 @@ def login():
 @jwt_required()
 def obtener_usuarios():
     try:
+        # Obtener el ID del usuario del token
+        current_user_id = get_jwt_identity()
+        
         # Obtener conexión a la base de datos
         cursor = get_db_connection()
         
@@ -215,6 +213,7 @@ def obtener_usuarios():
         
         return jsonify({
             "message": "Usuarios obtenidos exitosamente",
+            "current_user_id": current_user_id,  # Opcional: para debugging
             "usuarios": usuarios_list,
             "total": len(usuarios_list)
         }), 200
