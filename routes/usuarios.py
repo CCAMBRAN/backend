@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt, get_jwt_identity
 from flask_bcrypt import Bcrypt
 from config.db import get_db_connection
 import os
@@ -184,6 +184,53 @@ def login():
         
     except Exception as e:
         return jsonify({"error": f"Error al iniciar sesión: {str(e)}"}), 500
+    
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+
+@usuarios_bp.route('/obtener', methods=['GET'])
+@jwt_required()
+def obtener_usuarios():
+    try:
+        # Obtener información del token (maneja tanto string como diccionario)
+        current_user_identity = get_jwt_identity()
+        
+        # Si el identity es un diccionario, extraer el id_usuario
+        if isinstance(current_user_identity, dict):
+            current_user_id = current_user_identity.get('id_usuario')
+        else:
+            current_user_id = current_user_identity
+        
+        # Obtener conexión a la base de datos
+        cursor = get_db_connection()
+        
+        if not cursor:
+            return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+        # Obtener todos los usuarios (excluyendo passwords por seguridad)
+        cursor.execute("SELECT id_usuario, nombre, email, fecha_creacion FROM usuarios")
+        usuarios = cursor.fetchall()
+        
+        # Formatear los resultados
+        usuarios_list = []
+        for usuario in usuarios:
+            usuarios_list.append({
+                "id_usuario": usuario[0],
+                "nombre": usuario[1],
+                "email": usuario[2],
+                "fecha_creacion": usuario[3].isoformat() if usuario[3] else None
+            })
+        
+        return jsonify({
+            "message": "Usuarios obtenidos exitosamente",
+            "current_user_id": current_user_id,
+            "usuarios": usuarios_list,
+            "total": len(usuarios_list)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener los usuarios: {str(e)}"}), 500
     
     finally:
         if 'cursor' in locals() and cursor:
