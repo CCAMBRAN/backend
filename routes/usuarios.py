@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt
 from flask_bcrypt import Bcrypt
 from config.db import get_db_connection
 import os
@@ -164,8 +164,13 @@ def login():
         if not bcrypt.check_password_hash(user[3], password):  # user[3] is the password field
             return jsonify({"error": "Credenciales inválidas"}), 401
         
-        # CORRECCIÓN: Pasar el identity como string (normalmente el user_id)
-        access_token = create_access_token(identity=str(user[0]))
+        # Create access token
+        access_token = create_access_token(
+            identity={
+                "id": user[0],
+                "email": user[2]
+            }
+        )
         
         return jsonify({
             "message": "Login exitoso",
@@ -184,43 +189,4 @@ def login():
         if 'cursor' in locals() and cursor:
             cursor.close()
 
-@usuarios_bp.route('/obtener', methods=['GET'])
-@jwt_required()
-def obtener_usuarios():
-    try:
-        # Obtener el ID del usuario del token
-        current_user_id = get_jwt_identity()
-        
-        # Obtener conexión a la base de datos
-        cursor = get_db_connection()
-        
-        if not cursor:
-            return jsonify({"error": "Error de conexión a la base de datos"}), 500
-        
-        # Obtener todos los usuarios (excluyendo passwords por seguridad)
-        cursor.execute("SELECT id_usuario, nombre, email, fecha_creacion FROM usuarios")
-        usuarios = cursor.fetchall()
-        
-        # Formatear los resultados
-        usuarios_list = []
-        for usuario in usuarios:
-            usuarios_list.append({
-                "id": usuario[0],
-                "nombre": usuario[1],
-                "email": usuario[2],
-                "fecha_creacion": usuario[3].isoformat() if usuario[3] else None
-            })
-        
-        return jsonify({
-            "message": "Usuarios obtenidos exitosamente",
-            "current_user_id": current_user_id,  # Opcional: para debugging
-            "usuarios": usuarios_list,
-            "total": len(usuarios_list)
-        }), 200
-        
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener los usuarios: {str(e)}"}), 500
     
-    finally:
-        if 'cursor' in locals() and cursor:
-            cursor.close()
