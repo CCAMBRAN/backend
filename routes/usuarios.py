@@ -193,10 +193,11 @@ def login():
 @jwt_required()
 def obtener_usuarios():
     try:
-        # Obtener información del token (maneja tanto string como diccionario)
-        current_user_identity = get_jwt_identity()
+        # Obtener información del token JWT completo
+        jwt_data = get_jwt()
+        current_user_identity = jwt_data.get('sub')  # 'sub' contiene el identity
         
-        # Si el identity es un diccionario, extraer el id_usuario
+        # Manejar el caso donde identity es un diccionario
         if isinstance(current_user_identity, dict):
             current_user_id = current_user_identity.get('id_usuario')
         else:
@@ -235,4 +236,3 @@ def obtener_usuarios():
     finally:
         if 'cursor' in locals() and cursor:
             cursor.close()
-    
