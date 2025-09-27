@@ -167,7 +167,7 @@ def login():
         # Create access token
         access_token = create_access_token(
             identity={
-                "id": user[0],
+                "id_usuario": user[0],
                 "email": user[2]
             }
         )
@@ -176,7 +176,7 @@ def login():
             "message": "Login exitoso",
             "access_token": access_token,
             "user": {
-                "id": user[0],
+                "id_usuario": user[0],
                 "nombre": user[1],
                 "email": user[2]
             }
@@ -188,5 +188,4 @@ def login():
     finally:
         if 'cursor' in locals() and cursor:
             cursor.close()
-
     
