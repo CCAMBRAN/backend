@@ -193,15 +193,37 @@ def login():
 @jwt_required()
 def obtener_usuarios():
     try:
-        # Obtener información del token JWT completo
-        jwt_data = get_jwt()
-        current_user_identity = jwt_data.get('sub')  # 'sub' contiene el identity
+        # SOLUCIÓN: Manejar el token de forma más flexible
+        try:
+            # Intentar con get_jwt_identity() primero
+            current_user_identity = get_jwt_identity()
+        except Exception as e:
+            # Si falla, intentar con get_jwt()
+            try:
+                jwt_data = get_jwt()
+                current_user_identity = jwt_data.get('sub', {})
+            except:
+                current_user_identity = None
         
-        # Manejar el caso donde identity es un diccionario
-        if isinstance(current_user_identity, dict):
+        # Debug: imprimir qué se recibió
+        print(f"DEBUG - Tipo de identity: {type(current_user_identity)}")
+        print(f"DEBUG - Identity: {current_user_identity}")
+        
+        # Manejar diferentes casos de identity
+        current_user_id = None
+        
+        if current_user_identity is None:
+            return jsonify({"error": "No se pudo obtener la identidad del token"}), 401
+        
+        elif isinstance(current_user_identity, dict):
             current_user_id = current_user_identity.get('id_usuario')
-        else:
+        
+        elif isinstance(current_user_identity, (int, str)):
             current_user_id = current_user_identity
+        
+        else:
+            # Si es otro tipo, convertirlo a string
+            current_user_id = str(current_user_identity)
         
         # Obtener conexión a la base de datos
         cursor = get_db_connection()
@@ -231,6 +253,8 @@ def obtener_usuarios():
         }), 200
         
     except Exception as e:
+        # Debug del error
+        print(f"ERROR: {str(e)}")
         return jsonify({"error": f"Error al obtener los usuarios: {str(e)}"}), 500
     
     finally:
