@@ -164,13 +164,8 @@ def login():
         if not bcrypt.check_password_hash(user[3], password):  # user[3] is the password field
             return jsonify({"error": "Credenciales inválidas"}), 401
         
-        # Create access token
-        access_token = create_access_token(
-            identity={
-                "id_usuario": user[0],
-                "email": user[2]
-            }
-        )
+        # ✅ CORRECCIÓN: Pasar solo el ID como string
+        access_token = create_access_token(identity=str(user[0]))
         
         return jsonify({
             "message": "Login exitoso",
@@ -193,37 +188,8 @@ def login():
 @jwt_required()
 def obtener_usuarios():
     try:
-        # SOLUCIÓN: Manejar el token de forma más flexible
-        try:
-            # Intentar con get_jwt_identity() primero
-            current_user_identity = get_jwt_identity()
-        except Exception as e:
-            # Si falla, intentar con get_jwt()
-            try:
-                jwt_data = get_jwt()
-                current_user_identity = jwt_data.get('sub', {})
-            except:
-                current_user_identity = None
-        
-        # Debug: imprimir qué se recibió
-        print(f"DEBUG - Tipo de identity: {type(current_user_identity)}")
-        print(f"DEBUG - Identity: {current_user_identity}")
-        
-        # Manejar diferentes casos de identity
-        current_user_id = None
-        
-        if current_user_identity is None:
-            return jsonify({"error": "No se pudo obtener la identidad del token"}), 401
-        
-        elif isinstance(current_user_identity, dict):
-            current_user_id = current_user_identity.get('id_usuario')
-        
-        elif isinstance(current_user_identity, (int, str)):
-            current_user_id = current_user_identity
-        
-        else:
-            # Si es otro tipo, convertirlo a string
-            current_user_id = str(current_user_identity)
+        # ✅ Ahora el identity será un string simple
+        current_user_id = get_jwt_identity()
         
         # Obtener conexión a la base de datos
         cursor = get_db_connection()
@@ -231,7 +197,7 @@ def obtener_usuarios():
         if not cursor:
             return jsonify({"error": "Error de conexión a la base de datos"}), 500
         
-        # Obtener todos los usuarios (excluyendo passwords por seguridad)
+        # Obtener todos los usuarios
         cursor.execute("SELECT id_usuario, nombre, email, fecha_creacion FROM usuarios")
         usuarios = cursor.fetchall()
         
@@ -253,8 +219,6 @@ def obtener_usuarios():
         }), 200
         
     except Exception as e:
-        # Debug del error
-        print(f"ERROR: {str(e)}")
         return jsonify({"error": f"Error al obtener los usuarios: {str(e)}"}), 500
     
     finally:
