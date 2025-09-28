@@ -17,28 +17,28 @@ def obtener_tareas():
     try:
         if usuario_id is not None:
             cursor.execute(
-                '''SELECT t.id_tarea, t.descripcion, t.creada_en, t.usuario_id, u.nombre
+                '''SELECT t.id_tarea, t.description, t.creado_en, t.id_usuario, u.nombre
                    FROM tareas t
-                   JOIN usuarios u ON t.usuario_id = u.id_usuario
-                   WHERE t.usuario_id = %s
-                   ORDER BY t.creada_en DESC''',
+                   JOIN usuarios u ON t.id_usuario = u.id_usuario
+                   WHERE t.id_usuario = %s
+                   ORDER BY t.creado_en DESC''',
                 (usuario_id,)
             )
         else:
             cursor.execute(
-                '''SELECT t.id_tarea, t.descripcion, t.creada_en, t.usuario_id, u.nombre
+                '''SELECT t.id_tarea, t.description, t.creado_en, t.id_usuario, u.nombre
                    FROM tareas t
-                   JOIN usuarios u ON t.usuario_id = u.id_usuario
-                   ORDER BY t.creada_en DESC'''
+                   JOIN usuarios u ON t.id_usuario = u.id_usuario
+                   ORDER BY t.creado_en DESC'''
             )
 
         tareas = cursor.fetchall()
 
         tareas_list = [
             {
-                "id_tarea": tarea[0],  # Cambiado de "id" a "id_tarea"
-                "descripcion": tarea[1],
-                "creada_en": tarea[2].isoformat() if tarea[2] else None,
+                "id_tarea": tarea[0],
+                "descripcion": tarea[1],  # Mantenemos "descripcion" en español en la respuesta JSON
+                "creado_en": tarea[2].isoformat() if tarea[2] else None,
                 "usuario_id": tarea[3],
                 "usuario_nombre": tarea[4]
             }
@@ -79,8 +79,9 @@ def crear():
         if not usuario:
             return jsonify({"error": "El usuario especificado no existe"}), 404
 
+        # Usar 'description' para la columna en la BD
         cursor.execute(
-            'INSERT INTO tareas (descripcion, usuario_id) VALUES (%s, %s)',
+            'INSERT INTO tareas (description, id_usuario) VALUES (%s, %s)',
             (descripcion, usuario_id)
         )
         cursor.connection.commit()
@@ -88,7 +89,7 @@ def crear():
         return jsonify({
             "message": "Tarea creada exitosamente",
             "tarea": {
-                "id_tarea": cursor.lastrowid,  # Cambiado de "id" a "id_tarea"
+                "id_tarea": cursor.lastrowid,
                 "descripcion": descripcion,
                 "usuario_id": usuario_id
             }
@@ -115,21 +116,20 @@ def modificar(tarea_id):
         return jsonify({"error": "Error de conexión a la base de datos"}), 500
 
     try:
-        # Cambiado de 'id' a 'id_tarea'
         cursor.execute('SELECT id_tarea FROM tareas WHERE id_tarea = %s', (tarea_id,))
         tarea = cursor.fetchone()
 
         if not tarea:
             return jsonify({"error": "La tarea especificada no existe"}), 404
 
-        # Cambiado de 'id' a 'id_tarea'
-        cursor.execute('UPDATE tareas SET descripcion = %s WHERE id_tarea = %s', (descripcion, tarea_id))
+        # Usar 'description' para la columna en la BD
+        cursor.execute('UPDATE tareas SET description = %s WHERE id_tarea = %s', (descripcion, tarea_id))
         cursor.connection.commit()
 
         return jsonify({
             "message": "Tarea actualizada exitosamente",
             "tarea": {
-                "id_tarea": tarea_id,  # Cambiado de "id" a "id_tarea"
+                "id_tarea": tarea_id,
                 "descripcion": descripcion
             }
         }), 200
