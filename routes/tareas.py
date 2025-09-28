@@ -17,7 +17,7 @@ def obtener_tareas():
     try:
         if usuario_id is not None:
             cursor.execute(
-                '''SELECT t.id_tarea, t.description, t.creado_en, t.id_usuario, u.nombre
+                '''SELECT t.id_tarea, t.descripcion, t.creado_en, t.id_usuario, u.nombre
                    FROM tareas t
                    JOIN usuarios u ON t.id_usuario = u.id_usuario
                    WHERE t.id_usuario = %s
@@ -26,7 +26,7 @@ def obtener_tareas():
             )
         else:
             cursor.execute(
-                '''SELECT t.id_tarea, t.description, t.creado_en, t.id_usuario, u.nombre
+                '''SELECT t.id_tarea, t.descripcion, t.creado_en, t.id_usuario, u.nombre
                    FROM tareas t
                    JOIN usuarios u ON t.id_usuario = u.id_usuario
                    ORDER BY t.creado_en DESC'''
@@ -37,7 +37,7 @@ def obtener_tareas():
         tareas_list = [
             {
                 "id_tarea": tarea[0],
-                "descripcion": tarea[1],  # Mantenemos "descripcion" en español en la respuesta JSON
+                "descripcion": tarea[1],
                 "creado_en": tarea[2].isoformat() if tarea[2] else None,
                 "usuario_id": tarea[3],
                 "usuario_nombre": tarea[4]
@@ -72,16 +72,14 @@ def crear():
         return jsonify({"error": "Error de conexión a la base de datos"}), 500
 
     try:
-        # Verificar que el usuario existe
         cursor.execute('SELECT id_usuario FROM usuarios WHERE id_usuario = %s', (usuario_id,))
         usuario = cursor.fetchone()
 
         if not usuario:
             return jsonify({"error": "El usuario especificado no existe"}), 404
 
-        # Usar 'description' para la columna en la BD
         cursor.execute(
-            'INSERT INTO tareas (description, id_usuario) VALUES (%s, %s)',
+            'INSERT INTO tareas (descripcion, id_usuario) VALUES (%s, %s)',
             (descripcion, usuario_id)
         )
         cursor.connection.commit()
@@ -122,8 +120,7 @@ def modificar(tarea_id):
         if not tarea:
             return jsonify({"error": "La tarea especificada no existe"}), 404
 
-        # Usar 'description' para la columna en la BD
-        cursor.execute('UPDATE tareas SET description = %s WHERE id_tarea = %s', (descripcion, tarea_id))
+        cursor.execute('UPDATE tareas SET descripcion = %s WHERE id_tarea = %s', (descripcion, tarea_id))
         cursor.connection.commit()
 
         return jsonify({
