@@ -19,7 +19,7 @@ def obtener_tareas():
             cursor.execute(
                 '''SELECT t.id, t.descripcion, t.creada_en, t.usuario_id, u.nombre
                    FROM tareas t
-                   JOIN usuarios u ON t.usuario_id = u.id
+                   JOIN usuarios u ON t.usuario_id = u.id_usuario  # ✅ CORREGIDO
                    WHERE t.usuario_id = %s
                    ORDER BY t.creada_en DESC''',
                 (usuario_id,)
@@ -28,7 +28,7 @@ def obtener_tareas():
             cursor.execute(
                 '''SELECT t.id, t.descripcion, t.creada_en, t.usuario_id, u.nombre
                    FROM tareas t
-                   JOIN usuarios u ON t.usuario_id = u.id
+                   JOIN usuarios u ON t.usuario_id = u.id_usuario  # ✅ CORREGIDO
                    ORDER BY t.creada_en DESC'''
             )
 
@@ -72,7 +72,8 @@ def crear():
         return jsonify({"error": "Error de conexión a la base de datos"}), 500
 
     try:
-        cursor.execute('SELECT id FROM usuarios WHERE id = %s', (usuario_id,))
+        # ✅ CORREGIDO: usar id_usuario en lugar de id
+        cursor.execute('SELECT id_usuario FROM usuarios WHERE id_usuario = %s', (usuario_id,))
         usuario = cursor.fetchone()
 
         if not usuario:
