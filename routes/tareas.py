@@ -17,18 +17,18 @@ def obtener_tareas():
     try:
         if usuario_id is not None:
             cursor.execute(
-                '''SELECT t.id, t.descripcion, t.creada_en, t.usuario_id, u.nombre
+                '''SELECT t.id_tarea, t.descripcion, t.creada_en, t.usuario_id, u.nombre
                    FROM tareas t
-                   JOIN usuarios u ON t.usuario_id = u.id_usuario  # ✅ CORREGIDO
+                   JOIN usuarios u ON t.usuario_id = u.id_usuario
                    WHERE t.usuario_id = %s
                    ORDER BY t.creada_en DESC''',
                 (usuario_id,)
             )
         else:
             cursor.execute(
-                '''SELECT t.id, t.descripcion, t.creada_en, t.usuario_id, u.nombre
+                '''SELECT t.id_tarea, t.descripcion, t.creada_en, t.usuario_id, u.nombre
                    FROM tareas t
-                   JOIN usuarios u ON t.usuario_id = u.id_usuario  # ✅ CORREGIDO
+                   JOIN usuarios u ON t.usuario_id = u.id_usuario
                    ORDER BY t.creada_en DESC'''
             )
 
@@ -36,7 +36,7 @@ def obtener_tareas():
 
         tareas_list = [
             {
-                "id": tarea[0],
+                "id_tarea": tarea[0],  # Cambiado de "id" a "id_tarea"
                 "descripcion": tarea[1],
                 "creada_en": tarea[2].isoformat() if tarea[2] else None,
                 "usuario_id": tarea[3],
@@ -72,7 +72,7 @@ def crear():
         return jsonify({"error": "Error de conexión a la base de datos"}), 500
 
     try:
-        # ✅ CORREGIDO: usar id_usuario en lugar de id
+        # Verificar que el usuario existe
         cursor.execute('SELECT id_usuario FROM usuarios WHERE id_usuario = %s', (usuario_id,))
         usuario = cursor.fetchone()
 
@@ -88,7 +88,7 @@ def crear():
         return jsonify({
             "message": "Tarea creada exitosamente",
             "tarea": {
-                "id": cursor.lastrowid,
+                "id_tarea": cursor.lastrowid,  # Cambiado de "id" a "id_tarea"
                 "descripcion": descripcion,
                 "usuario_id": usuario_id
             }
@@ -115,19 +115,21 @@ def modificar(tarea_id):
         return jsonify({"error": "Error de conexión a la base de datos"}), 500
 
     try:
-        cursor.execute('SELECT id FROM tareas WHERE id = %s', (tarea_id,))
+        # Cambiado de 'id' a 'id_tarea'
+        cursor.execute('SELECT id_tarea FROM tareas WHERE id_tarea = %s', (tarea_id,))
         tarea = cursor.fetchone()
 
         if not tarea:
             return jsonify({"error": "La tarea especificada no existe"}), 404
 
-        cursor.execute('UPDATE tareas SET descripcion = %s WHERE id = %s', (descripcion, tarea_id))
+        # Cambiado de 'id' a 'id_tarea'
+        cursor.execute('UPDATE tareas SET descripcion = %s WHERE id_tarea = %s', (descripcion, tarea_id))
         cursor.connection.commit()
 
         return jsonify({
             "message": "Tarea actualizada exitosamente",
             "tarea": {
-                "id": tarea_id,
+                "id_tarea": tarea_id,  # Cambiado de "id" a "id_tarea"
                 "descripcion": descripcion
             }
         }), 200
