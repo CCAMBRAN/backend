@@ -198,7 +198,7 @@ def obtener_usuarios():
             return jsonify({"error": "Error de conexión a la base de datos"}), 500
         
         # Obtener todos los usuarios
-        cursor.execute("SELECT id_usuario, nombre, email, fecha_creacion FROM usuarios")
+        cursor.execute("SELECT id_usuario, nombre, email FROM usuarios")
         usuarios = cursor.fetchall()
         
         # Formatear los resultados
@@ -208,7 +208,6 @@ def obtener_usuarios():
                 "id_usuario": usuario[0],
                 "nombre": usuario[1],
                 "email": usuario[2],
-                "fecha_creacion": usuario[3].isoformat() if usuario[3] else None
             })
         
         return jsonify({
